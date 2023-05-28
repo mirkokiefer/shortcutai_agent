@@ -1,0 +1,23 @@
+{
+  "name": "shrtct_agent",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "pdf-parse": "^1.1.1",
+    "pdf-parse-deno": "^1.1.1",
+    "playwright": "^1.32.3",
+    "sharp": "^0.32.0",
+    "tesseract-wasm": "^0.10.0",
+    "tesseract.js": "^4.0.3",
+    "uuid": "^9.0.0",
+    "ws": "^8.13.0"
+  }
+}
