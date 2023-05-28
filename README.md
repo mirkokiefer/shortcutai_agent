@@ -95,8 +95,22 @@ GET http://localhost:3000/screenshots/some-uuid.png
 
 ## Deployment
 
+Setup a new Ubuntu 20.04 server on DigitalOcean. Then create a new user and add it to the sudo group:
+
 ```
-rsync -avz --delete --progress ./ root@68.183.77.209:/home/shrtct
+adduser shrtct
+usermod -aG sudo shrtct
+su - shrtct
+```
+
+To deploy to the server, first install Playwright:
+
+```
+npx playwright install --with-deps
+```
+
+```
+rsync -avz --delete --progress ./ root@159.223.17.188:/home/shrtct
 ```
 
 Then re-install node_modules:
@@ -109,7 +123,7 @@ yarn
 To exclude node_modules from rsync:
 
 ```
-rsync -avz --delete --progress --exclude='node_modules' ./ root@68.183.77.209:/home/shrtct
+rsync -avz --delete --progress --exclude='node_modules' --exclude='.git' ./ root@159.223.17.188:/home/shrtct
 ```
 
 Setup pm2:
@@ -133,5 +147,5 @@ pm2 restart shortcutai
 For fast release of new changes only in /src, use:
 
 ```
-rsync -avz --delete --progress ./src root@68.183.77.209:/home/shrtct/src
+rsync -avz --delete --progress ./src/ root@159.223.17.188:/home/shrtct/src
 ```

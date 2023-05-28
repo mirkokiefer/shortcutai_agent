@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { runOCR } from './ocr.js';
 import { promises as fs } from "fs";
 import pdf from 'pdf-parse-deno';
+import { fetchTweets } from './twitter.js';
 
 const browsers = [];
 const contexts = [];
@@ -339,6 +340,24 @@ app.get('/pdf2txt', async (req, res) => {
     }
 
     const result = await pdf2txt(url);
+
+    const resBody = {
+        url,
+        result
+    };
+
+    res.send(resBody);
+});
+
+app.get('/twitter', async (req, res) => {
+    const url = req.query.url;
+
+    if (!url) {
+        res.send('No url provided');
+        return;
+    }
+
+    const result = await fetchTweets(url);
 
     const resBody = {
         url,
