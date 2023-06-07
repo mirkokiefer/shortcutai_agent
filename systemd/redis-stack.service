@@ -1,0 +1,11 @@
+[Unit]
+Description=Redis Stack
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=redis-stack-server /etc/redis-stack.conf
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

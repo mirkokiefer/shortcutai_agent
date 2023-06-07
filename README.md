@@ -123,7 +123,7 @@ yarn
 To exclude node_modules from rsync:
 
 ```
-rsync -avz --delete --progress --exclude='node_modules' --exclude='.git' ./ root@159.223.17.188:/home/shrtct
+rsync -avz --delete --progress --exclude='node_modules' --exclude='shrtct_video/node_modules' --exclude='.git' ./ root@159.223.17.188:/home/shrtct
 ```
 
 Setup pm2:
@@ -148,4 +148,26 @@ For fast release of new changes only in /src, use:
 
 ```
 rsync -avz --delete --progress ./src/ root@159.223.17.188:/home/shrtct/src
+```
+
+## Redis deployment
+Install:
+
+- https://redis.io/docs/getting-started/installation/install-redis-on-linux/
+
+Add this to `/etc/redis/redis.conf`:
+
+```
+loadmodule /home/redisearch.so
+```
+
+Restart:
+
+```
+systemctl restart redis-server.service 
+```
+
+If service not found:
+```
+systemctl list-units --type=service | grep redis
 ```

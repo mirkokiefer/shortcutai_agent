@@ -1,6 +1,5 @@
 import { chromium, webkit } from "playwright";
 
-let result = [];
 
 let twitter_context = null;
 // const url = "https://twitter.com/elonmusk/status/1662654838398697472";
@@ -19,7 +18,7 @@ export async function fetchTweets(url) {
     context = await browser.newContext({
       viewport: {
         width: 375,
-        height: 1600,
+        height: 3200,
         deviceScaleFactor: 3,
         isMobile: true,
         hasTouch: true,
@@ -39,6 +38,8 @@ export async function fetchTweets(url) {
   await page.waitForSelector('*[data-testid="tweet"]');
 
   // Get the tweets
+  let result = [];
+
   const tweets = await page.$$("article");
   console.log(`Found ${tweets.length} tweets!`);
 
@@ -49,7 +50,7 @@ export async function fetchTweets(url) {
       text: "",
       likes: 0,
       retweets: 0,
-      image_url: "",
+      images: [],
       video_url: "",
     };
     try {
