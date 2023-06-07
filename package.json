@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",
+    "nanoid": "^4.0.2",
     "pdf-parse": "^1.1.1",
     "pdf-parse-deno": "^1.1.1",
     "playwright": "^1.32.3",

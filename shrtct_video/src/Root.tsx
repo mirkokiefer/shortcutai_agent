@@ -10,8 +10,9 @@ export const RemotionRoot: React.FC = () => {
 				component={MyComposition}
 				durationInFrames={240}
 				fps={30}
-				width={1280}
-				height={720}
+				// reel style height / width portrait
+				width={720}
+				height={1280}
 			/>
 		</>
 	);

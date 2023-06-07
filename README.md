@@ -123,7 +123,7 @@ yarn
 To exclude node_modules from rsync:
 
 ```
-rsync -avz --delete --progress --exclude='node_modules' --exclude='shrtct_video/node_modules' --exclude='.git' ./ root@159.223.17.188:/home/shrtct
+rsync -avz --delete --progress --exclude='node_modules' --exclude='shrtct_video/node_modules' --exclude='shrtct_video/out' --exclude='.git' ./ root@159.223.17.188:/home/shrtct
 ```
 
 Setup pm2:

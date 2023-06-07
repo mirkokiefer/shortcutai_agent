@@ -1,5 +1,5 @@
-import {interpolate} from 'remotion';
-import {useCurrentFrame} from 'remotion';
+import { getInputProps, interpolate } from 'remotion';
+import { useCurrentFrame } from 'remotion';
 import React from 'react';
 
 export const Title: React.FC = () => {
@@ -8,12 +8,15 @@ export const Title: React.FC = () => {
 		extrapolateLeft: 'clamp',
 		extrapolateRight: 'clamp',
 	});
+	const inputProps = getInputProps();
+	const title = inputProps.title || 'Welcome to ShortcutAI';
+
 	return (
 		<div
-			style={{opacity}}
+			style={{ opacity }}
 			className="text-gray-700 text-5xl font-bold leading-relaxed"
 		>
-			Welcome to ShortcutAI
+			{title}
 		</div>
 	);
 };

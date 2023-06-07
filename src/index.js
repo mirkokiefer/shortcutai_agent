@@ -8,10 +8,16 @@ import { runOCR } from './ocr.js';
 import { promises as fs } from "fs";
 import pdf from 'pdf-parse-deno';
 import { fetchTweets } from './twitter.js';
+import { exec } from 'child_process';
+import { createHash } from 'crypto';
 
 const browsers = [];
 const contexts = [];
 const pages = [];
+
+function createSHA1(input) {
+    return createHash('sha256').update(input).digest('hex');
+}
 
 const app = express();
 
@@ -205,6 +211,17 @@ async function pdf2txt(url) {
     return text;
 }
 
+app.get('/', (req, res) => {
+    const status = {
+        running: true,
+        browsers: browsers.length,
+        contexts: contexts.length,
+        pages: pages.length,
+    };
+
+    res.send(status);
+});
+
 app.post('/launch', async (req, res) => {
     const browser_id = await launchBrowser();
 
@@ -365,6 +382,45 @@ app.get('/twitter', async (req, res) => {
     };
 
     res.send(resBody);
+});
+
+app.get('/videos', async (req, res) => {
+    const params = req.query;
+
+    // run bash command as child process
+    // cd shrtct_video && yarn build
+    const id = createSHA1(JSON.stringify(params));
+    const cmd = `npx remotion render MyComp out/${id}.mp4 --props '${JSON.stringify(params)}'`;
+
+    console.info(cmd);
+
+    const cwd = `shrtct_video`;
+    const child = exec(cmd, { cwd }, (error, stdout, stderr) => {
+        console.log(error);
+        console.log(stdout);
+    });
+
+    child.on('exit', async () => {
+        const id = uuidv4();
+
+        console.log('Completed video...');
+        console.log(id);
+    });
+
+    const resBody = {
+        id,
+        params
+    };
+
+    res.send(resBody);
+});
+
+app.get('/videos/:id', (req, res) => {
+    const id = req.params.id;
+
+    const path = `shrtct_video/out/${id}.mp4`;
+
+    res.sendFile(path, { root: './' });
 });
 
 const port = 80;

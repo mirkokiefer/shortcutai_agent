@@ -1,5 +1,5 @@
 import React from 'react';
-import {interpolate, useCurrentFrame} from 'remotion';
+import { getInputProps, interpolate, useCurrentFrame } from 'remotion';
 
 export const Subtitle: React.FC = () => {
 	const frame = useCurrentFrame();
@@ -7,10 +7,12 @@ export const Subtitle: React.FC = () => {
 		extrapolateLeft: 'clamp',
 		extrapolateRight: 'clamp',
 	});
+	const inputProps = getInputProps();
+	const subtitle = inputProps.subtitle || 'Your subtitle.';
 
 	return (
-		<div className="text-gray-600 text-3xl" style={{opacity}}>
-			Edit <code>src/Composition.tsx</code> and save to reload.
+		<div className="text-gray-600 text-4xl" style={{ opacity }}>
+			{subtitle}
 		</div>
 	);
 };
