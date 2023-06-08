@@ -171,3 +171,26 @@ If service not found:
 ```
 systemctl list-units --type=service | grep redis
 ```
+
+### Whisper
+
+- https://github.com/jianfch/stable-ts
+
+```
+stable-ts test.mp3 -o test.srt
+```
+
+```
+stable-ts test.mp3 -o test.json
+```
+
+Converting to mp3:
+
+```
+ffmpeg -i test.mp4 -vn -c:a libmp3lame -q:a 4 test.mp3
+```
+
+```
+ffmpeg -i test.m4a -vn -c:a libmp3lame -q:a 4 test.mp3
+```
+

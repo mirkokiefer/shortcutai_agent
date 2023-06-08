@@ -423,6 +423,38 @@ app.get('/videos/:id', (req, res) => {
     res.sendFile(path, { root: './' });
 });
 
+app.get('voice', async (req, res) => {
+    const audio_url = req.query.url;
+    
+    // download to local tmp file
+    const file_name = createSHA1(audio_url);
+    const local_path = `audio/${file_name}.mp3`;
+    const res = await fetch(audio_url);
+    // pipe to local file
+    const ws = fs.createWriteStream(local_path);
+    res.body.pipe(ws);
+
+    // convert to text
+    const cmd = `stable-ts ${file_name}.mp3 -o ${file_name}.json`;
+    const cwd = `audio`;
+    const child = exec(cmd, { cwd }, (error, stdout, stderr) => {
+        console.log(error);
+        console.log(stdout);
+    });
+
+    child.on('exit', async () => {
+        console.info('Completed voice...');
+        console.info(file_name);
+    });
+
+    const resBody = {
+        file_name,
+        audio_url,
+    };
+
+    res.send(resBody);
+});
+
 const port = 80;
 app.listen(80, () => {
     console.log(`Listening on port ${port}...`);

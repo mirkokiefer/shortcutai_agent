@@ -4,7 +4,11 @@ import { Img, getInputProps, interpolate, spring, useCurrentFrame, useVideoConfi
 export const Logo: React.FC = () => {
 	const frame = useCurrentFrame();
 	const { height, width, fps } = useVideoConfig();
-	const logoUrl = getInputProps().logo || 'https://shrtct.ai/logo.png';
+	let logoUrl = getInputProps().logo;
+
+	if (logoUrl === undefined || logoUrl.indexOf('http') === -1) {
+		logoUrl ='https://shrtct.ai/logo.png';
+	}
 
 	const entrance = spring({
 		fps,
@@ -28,9 +32,11 @@ export const Logo: React.FC = () => {
 			>
 				<Img
 					style={{
-						height: width / 4,
-						width: width / 4,
-						borderRadius: width / 4 / 2,
+						height: width / 2,
+						width: width / 2,
+						borderRadius: width / 2 / 2,
+						// aspect fill
+						objectFit: 'cover',
 					}}
 					src={logoUrl} />
 			</div>
