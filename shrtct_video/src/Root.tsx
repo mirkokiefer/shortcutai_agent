@@ -1,6 +1,7 @@
 import {Composition} from 'remotion';
 import {MyComposition} from './Composition';
 import './style.css';
+import { MermaidComp } from './MermaidComp';
 
 export const RemotionRoot: React.FC = () => {
 	return (
@@ -8,6 +9,15 @@ export const RemotionRoot: React.FC = () => {
 			<Composition
 				id="MyComp"
 				component={MyComposition}
+				durationInFrames={240}
+				fps={30}
+				// reel style height / width portrait
+				width={1024}
+				height={1024}
+			/>
+			<Composition
+				id="Mermaid"
+				component={MermaidComp}
 				durationInFrames={240}
 				fps={30}
 				// reel style height / width portrait

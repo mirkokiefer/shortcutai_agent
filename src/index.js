@@ -10,6 +10,7 @@ import pdf from 'pdf-parse-deno';
 import { fetchTweets } from './twitter.js';
 import { exec } from 'child_process';
 import { createHash } from 'crypto';
+import { run } from "@mermaid-js/mermaid-cli"
 
 const browsers = [];
 const contexts = [];
@@ -21,6 +22,7 @@ function createSHA1(input) {
 
 const app = express();
 
+app.use(bodyParser.text());
 app.use(bodyParser.json());
 
 async function launchBrowser() {
@@ -167,7 +169,7 @@ async function getHTML(page_id, selector) {
     return html;
 }
 
-async function screenshot(page_id) {
+async function screenshot(page_id, selector, name) {
     console.log('Taking screenshot...');
 
     const page = pages.find(page => page.id === page_id);
@@ -176,8 +178,22 @@ async function screenshot(page_id) {
         return null;
     }
 
-    const fileName = uuidv4() + '.png';
+    const fileName = `${name || uuidv4()}.png`;
     const path = `screenshots/${fileName}`;
+
+    if (selector) {
+        // wait for selector
+        try {
+            await page.obj.waitForSelector(selector);
+        } catch (error) {
+            console.log(error);
+            return null;
+        }
+
+        const el = await page.obj.$(selector);
+        await el.screenshot({ path });
+        return fileName;
+    }
 
     await page.obj.screenshot({ path });
 
@@ -425,14 +441,14 @@ app.get('/videos/:id', (req, res) => {
 
 app.get('voice', async (req, res) => {
     const audio_url = req.query.url;
-    
+
     // download to local tmp file
     const file_name = createSHA1(audio_url);
     const local_path = `audio/${file_name}.mp3`;
-    const res = await fetch(audio_url);
+    const audioRes = await fetch(audio_url);
     // pipe to local file
     const ws = fs.createWriteStream(local_path);
-    res.body.pipe(ws);
+    audioRes.body.pipe(ws);
 
     // convert to text
     const cmd = `stable-ts ${file_name}.mp3 -o ${file_name}.json`;
@@ -450,6 +466,88 @@ app.get('voice', async (req, res) => {
     const resBody = {
         file_name,
         audio_url,
+    };
+
+    res.send(resBody);
+});
+
+
+const code1 = `
+flowchart TD
+    A[Christmas] -->|Get money| B(Go shopping)
+    B --> C{Let me think}
+    C -->|One| D[Laptop]
+    C -->|Two| E[iPhone]
+    C -->|Three| F[fa:fa-car Car]
+`;
+app.get('/mermaid_html', async (req, res) => {
+    const code = req.query.code;
+
+    console.info('mermaid', code);
+
+    const fd = await fs.open('mermaid.html', 'r');
+    const htmlTemplate = await fd.readFile('utf8');
+
+    const html = htmlTemplate.replace('{{code}}', code);
+
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+});
+
+let mermaid_browser_id = null;
+let mermaid_context_id = null;
+app.post('/mermaid', async (req, res) => {
+    // get request body text
+    const code = req.body;
+    console.info('mermaid body', code);
+
+    const id = createSHA1(code);
+
+    const file_name = `${id}.png`;
+    const file_path = `screenshots/${file_name}`;
+
+    // check if file exists
+    try {
+        const fd = await fs.open(file_path, 'r');
+
+        await fd.close();
+
+        console.info('File exists, sending...');
+
+        const resBody = {
+            fileName: file_name
+        };
+
+        res.send(resBody);
+        return;
+    } catch (err) {
+        console.info('File does not exist, creating...');
+    }
+
+    let browser_id = mermaid_browser_id;
+    let context_id = mermaid_context_id;
+
+    if (!browser_id) {
+        browser_id = await launchBrowser();
+        context_id = await newContext(browser_id);
+
+        mermaid_browser_id = browser_id;
+        mermaid_context_id = context_id;
+    } else {
+        console.info("Using existing mermaid browser and context");
+    }
+
+    const page_id = await newPage(context_id);
+
+    const url = `http://localhost/mermaid_html?code=${encodeURIComponent(code)}`;
+
+    await goto(page_id, url);
+
+    // take screenshot
+    const fileName = await screenshot(page_id, "#mermaid svg", id);
+
+    const resBody = {
+        fileName
     };
 
     res.send(resBody);

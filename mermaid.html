@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Mermaid</title>
+    <!-- <link rel="stylesheet" href="css/mermaid.css"> -->
+
+</html>
+
+<body>
+    <div class="code">
+        {{code}}
+    </div>
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        // import mermaid from './mermaid.esm.mjs';
+        let config = { startOnLoad: false, flowchart: { useMaxWidth: false, htmlLabels: true } };
+        mermaid.initialize(config);
+        // import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        // mermaid.initialize({ startOnLoad: true });
+        // Example of using the bindFunctions
+        const drawDiagram = async function () {
+            const element = document.querySelector('.code');
+            const graphDefinition = element.textContent;
+            const { svg, bindFunctions } = await mermaid.render('graphDiv', graphDefinition);
+            // create new element with id mermaid
+            const newElement = document.createElement('div');
+            newElement.setAttribute('id', 'mermaid');
+            // add to body
+            document.body.appendChild(newElement);
+            newElement.innerHTML = svg;
+
+            // This can also be written as `bindFunctions?.(element);` using the `?` shorthand.
+            if (bindFunctions) {
+                bindFunctions(newElement);
+            }
+
+            // remove the old element
+            element.parentNode.removeChild(element);
+        };
+
+        drawDiagram();
+    </script>
+</body>
+
+</html>

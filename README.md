@@ -194,3 +194,9 @@ ffmpeg -i test.mp4 -vn -c:a libmp3lame -q:a 4 test.mp3
 ffmpeg -i test.m4a -vn -c:a libmp3lame -q:a 4 test.mp3
 ```
 
+### Mermaid
+
+```
+yarn global add @mermaid-js/mermaid-cli
+```
+
