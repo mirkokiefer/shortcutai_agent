@@ -10,7 +10,6 @@ import pdf from 'pdf-parse-deno';
 import { fetchTweets } from './twitter.js';
 import { exec } from 'child_process';
 import { createHash } from 'crypto';
-import { run } from "@mermaid-js/mermaid-cli"
 
 const browsers = [];
 const contexts = [];
@@ -67,9 +66,10 @@ async function newContext(browser_id, opts) {
 
     const defaultOpts = {
         viewport: {
-            width: 1920,
-            height: 1080,
-            deviceScaleFactor: 1,
+            // 4k screen
+            width: 2560,
+            height: 2160,
+            deviceScaleFactor: 2,
             isMobile: false,
             hasTouch: false,
             isLandscape: false,
@@ -133,6 +133,22 @@ async function newPage(context_id) {
     return page_id;
 }
 
+async function closePage(page_id) {
+    console.log('Closing page...');
+
+    const page = pages.find(page => page.id === page_id);
+
+    if (!page) {
+        return;
+    }
+
+    await page.obj.close();
+
+    pages.splice(pages.indexOf(page), 1);
+
+    return page.context_id;
+}
+
 async function goto(page_id, url) {
     console.log(`Going to page ${url}...`);
 
@@ -143,6 +159,18 @@ async function goto(page_id, url) {
     }
 
     await page.obj.goto(url);
+}
+
+function getPage(page_id) {
+    console.log(`Getting page...`);
+
+    const page = pages.find(page => page.id === page_id);
+
+    if (!page) {
+        return;
+    }
+
+    return page.obj;
 }
 
 async function getHTML(page_id, selector) {
@@ -551,6 +579,83 @@ app.post('/mermaid', async (req, res) => {
     };
 
     res.send(resBody);
+});
+
+let google_browser_id = null;
+let google_context_id = null;
+app.get('/google', async (req, res) => {
+    // get request body text
+    const query = req.query.q;
+
+    // timeframe (optional) - h, d, w, m, y
+    const timeframe = req.query.t;
+
+    let timeFrameQuery = "";
+    if (timeframe) {
+        timeFrameQuery = `&tbs=qdr:${timeframe}`;
+    }
+
+    if (!google_browser_id) {
+        google_browser_id = await launchBrowser();
+        google_context_id = await newContext(google_browser_id);
+    }
+
+    const page_id = await newPage(google_context_id);
+
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}${timeFrameQuery}`;
+
+    await goto(page_id, url);
+
+    // take screenshot
+    // const fileName = await screenshot(page_id, "#search", query);
+
+    const page = getPage(page_id);
+
+    // wait for results
+    await page.waitForSelector(".g");
+
+    if (!page) {
+        console.error("Page not found");
+        res.send("Error");
+        return;
+    }
+
+    console.info("Got results");
+
+    const items = [];
+
+    const results = await page.$$(".g");
+
+    for (const result of results) {
+        const title = await result.$eval("h3", (el) => el.innerText);
+        const link = await result.$eval("a", (el) => el.href);
+        const description = await result.innerText();
+
+        const related_links = await result.$$eval("a", (els) => {
+            const links = [];
+
+            for (const el of els) {
+                const link = el.href;
+                const title = el.innerText;
+
+                links.push({link, title});
+            }
+
+            return links;
+        });
+
+        items.push({
+            title,
+            link,
+            description,
+            related_links
+        });
+    }
+
+    // close page
+    await closePage(page_id);
+
+    res.send({ items });
 });
 
 const port = 80;

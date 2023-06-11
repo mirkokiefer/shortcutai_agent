@@ -27,6 +27,10 @@
             // create new element with id mermaid
             const newElement = document.createElement('div');
             newElement.setAttribute('id', 'mermaid');
+            // have its children flex and center
+            newElement.style.display = 'flex';
+            newElement.style.justifyContent = 'center';
+
             // add to body
             document.body.appendChild(newElement);
             newElement.innerHTML = svg;
