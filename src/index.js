@@ -10,10 +10,35 @@ import pdf from 'pdf-parse-deno';
 import { fetchTweets } from './twitter.js';
 import { exec } from 'child_process';
 import { createHash } from 'crypto';
+import { spawn } from 'node:child_process';
+// express cors
+import cors from 'cors';
+
+const time_lauched = Date.now();
 
 const browsers = [];
 const contexts = [];
 const pages = [];
+
+const DURATION_WINDOW = 10;
+const metrics = {
+    google: {
+        total: 0,
+        average_duration: 0,
+    },
+    twitter: {
+        total: 0,
+        average_duration: 0,
+    },
+    mermaid: {
+        total: 0,
+        average_duration: 0,
+    },
+    pdf2txt: {
+        total: 0,
+        average_duration: 0,
+    }
+}
 
 function createSHA1(input) {
     return createHash('sha256').update(input).digest('hex');
@@ -23,6 +48,7 @@ const app = express();
 
 app.use(bodyParser.text());
 app.use(bodyParser.json());
+app.use(cors());
 
 async function launchBrowser() {
     console.log('Launching browser...');
@@ -244,6 +270,8 @@ async function ocr(fileName) {
 async function pdf2txt(url) {
     console.log('Converting PDF to TXT...');
 
+    const start = Date.now();
+
     const res = await fetch(url);
 
     // nodejs buffer from res
@@ -251,6 +279,12 @@ async function pdf2txt(url) {
     const data = await pdf(buffer);
 
     const text = data.text;
+
+    const end = Date.now();
+
+    const duration = (end - start) / 1000;
+
+    updateMetric(metrics.pdf2txt, duration);
 
     return text;
 }
@@ -261,9 +295,21 @@ app.get('/', (req, res) => {
         browsers: browsers.length,
         contexts: contexts.length,
         pages: pages.length,
+        seconds_running: Math.floor((Date.now() - time_lauched) / 1000)
     };
 
     res.send(status);
+});
+
+app.get('/metrics', (req, res) => {
+    res.send({
+        browser: {
+            browsers: browsers.length,
+            contexts: contexts.length,
+            pages: pages.length,
+        },
+        ...metrics
+    });
 });
 
 app.post('/launch', async (req, res) => {
@@ -413,6 +459,8 @@ app.get('/pdf2txt', async (req, res) => {
 app.get('/twitter', async (req, res) => {
     const url = req.query.url;
 
+    const start = Date.now();
+
     if (!url) {
         res.send('No url provided');
         return;
@@ -425,6 +473,11 @@ app.get('/twitter', async (req, res) => {
         result
     };
 
+    const end = Date.now();
+
+    const duration = (end - start) / 1000;
+
+    updateMetric(metrics.twitter, duration);
     res.send(resBody);
 });
 
@@ -525,6 +578,8 @@ app.get('/mermaid_html', async (req, res) => {
 let mermaid_browser_id = null;
 let mermaid_context_id = null;
 app.post('/mermaid', async (req, res) => {
+
+    const start = Date.now();
     // get request body text
     const code = req.body;
     console.info('mermaid body', code);
@@ -574,16 +629,35 @@ app.post('/mermaid', async (req, res) => {
     // take screenshot
     const fileName = await screenshot(page_id, "#mermaid svg", id);
 
+    const end = Date.now();
+    const duration = end - start;
+
     const resBody = {
-        fileName
+        fileName,
+        duration
     };
+
+    updateMetric(metrics.mermaid, duration);
 
     res.send(resBody);
 });
 
+function updateMetric(metric, duration) {
+    metric.total++;
+    if (!metric.average_duration) {
+        metric.average_duration = duration;
+        return;
+    } else {
+        const window_size = Math.min(metric.total, DURATION_WINDOW);
+        metric.average_duration = (metric.average_duration * (window_size - 1) + duration) / window_size;
+    }
+}
+
 let google_browser_id = null;
 let google_context_id = null;
 app.get('/google', async (req, res) => {
+
+    const start = Date.now();
     // get request body text
     const query = req.query.q;
 
@@ -602,7 +676,9 @@ app.get('/google', async (req, res) => {
 
     const page_id = await newPage(google_context_id);
 
-    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}${timeFrameQuery}`;
+    const locale_query = "&hl=en";
+
+    const url = `https://www.google.com/search?q=${encodeURIComponent(query)}${timeFrameQuery}${locale_query}`;
 
     await goto(page_id, url);
 
@@ -631,18 +707,21 @@ app.get('/google', async (req, res) => {
         const link = await result.$eval("a", (el) => el.href);
         const description = await result.innerText();
 
-        const related_links = await result.$$eval("a", (els) => {
+        let related_links = await result.$$eval("a", (els) => {
             const links = [];
 
             for (const el of els) {
                 const link = el.href;
                 const title = el.innerText;
 
-                links.push({link, title});
+                links.push({ link, title });
             }
 
             return links;
         });
+
+        // remove first
+        related_links.shift();
 
         items.push({
             title,
@@ -655,8 +734,102 @@ app.get('/google', async (req, res) => {
     // close page
     await closePage(page_id);
 
-    res.send({ items });
+    const end = Date.now();
+
+    const duration = end - start;
+
+    updateMetric(metrics.google, duration);
+
+    res.send({ items, duration });
 });
+
+app.get('/yt-dlp', async (req, res) => {
+    const url = req.query.url;
+    const format = req.query.format || 'webm';
+    // const from = req.query.from || 0;
+    // const to = req.query.to || -1;
+
+    const id = createSHA1(url + format);
+
+    try {
+        const path = `videos/${id}.${format}`
+        const stat = await fs.stat(path);
+        const total = stat.size;
+
+        const fd = await fs.open(path, 'r');
+
+        if (req.headers.range) { // meaning client (browser) has moved the forward/back slider
+            const range = req.headers.range;
+            const parts = range.replace(/bytes=/, "").split("-");
+            const partialstart = parts[0];
+            const partialend = parts[1];
+
+            const start = parseInt(partialstart, 10);
+            const end = partialend ? parseInt(partialend, 10) : total - 1;
+            const chunksize = (end - start) + 1;
+
+            console.log('RANGE: ' + start + ' - ' + end + ' = ' + chunksize);
+
+            res.writeHead(206, {
+                'Content-Range': 'bytes ' + start + '-' + end + '/' + total,
+                'Accept-Ranges': 'bytes',
+                'Content-Length': chunksize,
+                'Content-Type': `video/${format}`
+            });
+
+            await fd.createReadStream({ start, end }).pipe(res);
+            return;
+        }
+
+        res.setHeader('Content-Type', `video/${format}`);
+        res.setHeader('Content-Length', total);
+        await fd.createReadStream().pipe(res);
+
+        console.info('File exists, sending...');
+        return;
+    } catch (err) {
+        console.error(err);
+        console.info('File does not exist, creating...');
+    }
+
+    const cmd = `yt-dlp -o "videos/${id}.%(ext)s" --merge-output-format ${format} ${url}`;
+
+    const child = exec(cmd, (error, stdout, stderr) => {
+        console.log(error);
+        console.log(stdout);
+    });
+
+    child.on('exit', async () => {
+        console.info('Completed yt-dlp...');
+
+        // send file
+        const file_name = `${id}.${format}`;
+        const file_path = `videos/${file_name}`;
+
+        const fd = await fs.open(file_path, 'r');
+
+        res.setHeader('Content-Type', `video/${format}`);
+        await fd.createReadStream().pipe(res);
+    });
+});
+
+app.get('/restart', async (req, res) => {
+    // restart pm2 process
+
+    const cmd = `pm2 restart shortcutai`;
+
+    const child = exec(cmd, (error, stdout, stderr) => {
+        console.log(error);
+        console.log(stdout);
+    });
+
+    child.on('exit', async () => {
+        console.info('Completed restart...');
+    });
+
+    res.send("Restarting...");
+});
+
 
 const port = 80;
 app.listen(80, () => {

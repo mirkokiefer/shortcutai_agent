@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Wasm</title>
+</head>
+
+<body>
+    <h1>Wasm</h1>
+    <script>
+        WebAssembly.instantiateStreaming(fetch('./test.wasm'))
+            .then(obj => {
+                console.log(obj.instance.exports.how_old(2000, 2020));
+            });
+
+        async function infoWasm2() {
+            const obj = await WebAssembly.compileStreaming(fetch("./test2.wasm"));
+
+            console.log(obj);
+        }
+
+        async function runWasm2() {
+            console.log("runWasm");
+            const importObj = { imports: { log_func: arg => console.log(arg) } };
+            const obj = await WebAssembly.instantiateStreaming(fetch("./test2.wasm"), importObj);
+
+            obj.instance.exports.log_how_old(2000, 2022);
+        }
+
+        async function runWasm3() {
+            console.log("runWasm3");
+            const importObj = { imports: { log_func: arg => console.log(arg) } };
+            const obj = await WebAssembly.instantiateStreaming(fetch("./test3.wasm"), importObj);
+
+            console.log("wasm3.howOld", obj.instance.exports.howOld(2000, 2022));
+            console.log("wasm3.addArray", obj.instance.exports.addArray());
+        }
+
+        infoWasm2();
+        runWasm2();
+        runWasm3();
+    </script>
+</body>
+
+</html>

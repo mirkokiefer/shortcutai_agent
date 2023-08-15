@@ -1,7 +1,7 @@
 import {AbsoluteFill} from 'remotion';
-import {Logo} from './Logo';
-import {Subtitle} from './Subtitle';
-import {Title} from './Title';
+import {Logo} from '../components/Logo';
+import {Subtitle} from '../components/Subtitle';
+import {Title} from '../components/Title';
 
 export const MyComposition = () => {
 	return (

@@ -1,5 +1,5 @@
 import { chromium, webkit } from "playwright";
-
+import fs from "fs";
 
 let twitter_context = null;
 // const url = "https://twitter.com/elonmusk/status/1662654838398697472";
@@ -191,10 +191,20 @@ export async function fetchTweets(url) {
         (video) => video.src,
       );
 
-      console.log(src2);
+      if (src2.includes("blob")) {
+        console.log("Saving video...", src2);
+        
+        // stream video to file as .mp4
+        const file = fs.createWriteStream("video.mp4");
+        const response = await fetch(src2);
+        // stream to file
+        await response.body.pipe(file);
+
+      }
+
       tweet.video_url = src2;
     } catch (e) {
-      console.log("No video");
+      console.log("No video", e);
     }
 
     result.push(tweet);

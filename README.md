@@ -126,6 +126,31 @@ To exclude node_modules from rsync:
 rsync -avz --delete --progress --exclude='node_modules' --exclude='shrtct_video/node_modules' --exclude='shrtct_video/out' --exclude='.git' ./ root@159.223.17.188:/home/shrtct
 ```
 
+Up:
+```
+rsync -avz -e "ssh -p 43616" --delete --progress --exclude='node_modules' --exclude='shrtct_video/node_modules' --exclude='shrtct_video/out' --exclude='.git'  ./ root@75.191.38.75:/home/shrtct
+```
+
+Down:
+```
+rsync -avz -e "ssh -p 43616" --delete --progress root@75.191.38.75:/home/out ~/Downloads/sc
+```
+
+CivitAI:
+
+```
+wget https://civitai.com/api/download/models/134065 -O epic.safetensors
+
+wget https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py
+
+python convert_original_stable_diffusion_to_diffusers.py --checkpoint_path epic.safetensors --dump_path epic/ --from_safetensors
+```
+
+```
+```
+
+ssh -p 8965 root@sshd.jarvislabs.ai
+
 Setup pm2:
 
 ```
